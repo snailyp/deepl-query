@@ -164,6 +164,32 @@
     .saved-keys {
       margin-top: 20px;
     }
+    .saved-keys-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .saved-keys-header h3 {
+      margin: 0;
+      padding-top: 15px;
+      flex: 1;
+    }
+    .saved-keys-content {
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .collapse-icon {
+      font-size: 18px;
+      transition: transform 0.3s ease;
+    }
+    .collapsed .collapse-icon {
+      transform: rotate(-90deg);
+    }
+    .collapsed .saved-keys-content {
+      max-height: 0 !important;
+    }
     .keys-list {
       max-height: 200px;
       overflow-y: auto;
@@ -312,14 +338,19 @@
       </div>
     </div>
     
-    <div class="saved-keys">
-      <h3>已保存的密钥</h3>
-      <div id="savedKeysList" class="keys-list">
-        <!-- 已保存的密钥将在这里显示 -->
-        <div class="no-keys">暂无保存的密钥</div>
+    <div class="saved-keys" id="savedKeysSection">
+      <div class="saved-keys-header" id="savedKeysHeader">
+        <h3>已保存的密钥</h3>
+        <span class="collapse-icon">▼</span>
       </div>
-      <div id="paginationContainer" class="pagination-container">
-        <!-- 分页控件将在这里显示 -->
+      <div class="saved-keys-content">
+        <div id="savedKeysList" class="keys-list">
+          <!-- 已保存的密钥将在这里显示 -->
+          <div class="no-keys">暂无保存的密钥</div>
+        </div>
+        <div id="paginationContainer" class="pagination-container">
+          <!-- 分页控件将在这里显示 -->
+        </div>
       </div>
     </div>
   </div>

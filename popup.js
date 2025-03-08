@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const remainingDiv = document.getElementById('remaining');
   const savedKeysList = document.getElementById('savedKeysList');
   const paginationContainer = document.getElementById('paginationContainer');
+  const savedKeysSection = document.getElementById('savedKeysSection');
+  const savedKeysHeader = document.getElementById('savedKeysHeader');
+  const savedKeysContent = document.querySelector('.saved-keys-content');
   
   // 分页相关变量
   let currentPage = 1;
@@ -25,9 +28,39 @@ document.addEventListener('DOMContentLoaded', function() {
   const errorMessage = document.getElementById('errorMessage');
   const errorCloseBtn = document.getElementById('errorCloseBtn');
 
+  // 初始化折叠状态
+  let isCollapsed = false;
+  
+  // 设置保存的密钥区域内容的初始高度
+  setTimeout(() => {
+    savedKeysContent.style.maxHeight = savedKeysContent.scrollHeight + 'px';
+  }, 0);
+  
+  // 添加折叠/展开事件监听
+  savedKeysHeader.addEventListener('click', function() {
+    isCollapsed = !isCollapsed;
+    if (isCollapsed) {
+      savedKeysSection.classList.add('collapsed');
+    } else {
+      savedKeysSection.classList.remove('collapsed');
+      // 重新计算展开后的高度
+      savedKeysContent.style.maxHeight = savedKeysContent.scrollHeight + 'px';
+    }
+  });
+
   // 加载保存的配置和密钥列表
   loadConfig();
   loadSavedKeys();
+  
+  // 监听API密钥输入变化，自动判断类型
+  apiKeyInput.addEventListener('input', function() {
+    const apiKey = this.value.trim();
+    if (apiKey.endsWith(':fx')) {
+      apiKeyTypeSelect.value = 'free';
+    } else if (apiKey && !apiKey.endsWith(':fx')) {
+      apiKeyTypeSelect.value = 'pro';
+    }
+  });
   
   // 错误提示关闭按钮事件
   errorCloseBtn.addEventListener('click', function() {
@@ -37,12 +70,21 @@ document.addEventListener('DOMContentLoaded', function() {
   // 保存配置按钮点击事件
   saveConfigButton.addEventListener('click', function() {
     const apiKey = apiKeyInput.value.trim();
-    const apiKeyType = apiKeyTypeSelect.value;
+    let apiKeyType = apiKeyTypeSelect.value;
     let keyName = keyNameInput.value.trim();
 
     if (!apiKey) {
       showErrorDialog('请输入 API 密钥!');
       return;
+    }
+    
+    // 根据密钥结尾自动判断类型
+    if (apiKey.endsWith(':fx')) {
+      apiKeyType = 'free';
+      apiKeyTypeSelect.value = 'free';
+    } else if (!apiKey.endsWith(':fx')) {
+      apiKeyType = 'pro';
+      apiKeyTypeSelect.value = 'pro';
     }
 
     // 如果没有提供名称，使用默认名称
@@ -70,11 +112,20 @@ document.addEventListener('DOMContentLoaded', function() {
   queryUsageButton.addEventListener('click', function() {
     // 直接使用输入框中的值进行查询，而不是从存储中获取
     const apiKey = apiKeyInput.value.trim();
-    const apiKeyType = apiKeyTypeSelect.value;
+    let apiKeyType = apiKeyTypeSelect.value;
 
     if (!apiKey) {
       showErrorDialog('请输入 API 密钥!');
       return;
+    }
+    
+    // 根据密钥结尾自动判断类型
+    if (apiKey.endsWith(':fx')) {
+      apiKeyType = 'free';
+      apiKeyTypeSelect.value = 'free';
+    } else if (!apiKey.endsWith(':fx')) {
+      apiKeyType = 'pro';
+      apiKeyTypeSelect.value = 'pro';
     }
 
     checkDeeplUsage(apiKey, apiKeyType);
@@ -85,9 +136,15 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.sync.get(['deeplApiKey', 'deeplApiKeyType'], function(data) {
       if (data.deeplApiKey) {
         apiKeyInput.value = data.deeplApiKey;
-      }
-      if (data.deeplApiKeyType) {
-        apiKeyTypeSelect.value = data.deeplApiKeyType;
+        
+        // 根据密钥结尾自动判断类型
+        if (data.deeplApiKey.endsWith(':fx')) {
+          apiKeyTypeSelect.value = 'free';
+        } else if (data.deeplApiKey && !data.deeplApiKey.endsWith(':fx')) {
+          apiKeyTypeSelect.value = 'pro';
+        } else if (data.deeplApiKeyType) {
+          apiKeyTypeSelect.value = data.deeplApiKeyType;
+        }
       }
     });
   }
@@ -96,10 +153,23 @@ document.addEventListener('DOMContentLoaded', function() {
   function loadSavedKeys() {
     chrome.storage.sync.get('deeplSavedKeys', function(data) {
       if (data.deeplSavedKeys && data.deeplSavedKeys.length > 0) {
-        allKeys = data.deeplSavedKeys;
+        // 更新密钥类型
+        allKeys = data.deeplSavedKeys.map(keyItem => {
+          // 根据密钥结尾自动判断类型
+          if (keyItem.key.endsWith(':fx')) {
+            keyItem.type = 'free';
+          } else if (!keyItem.key.endsWith(':fx')) {
+            keyItem.type = 'pro';
+          }
+          return keyItem;
+        });
+        
         totalPages = Math.ceil(allKeys.length / keysPerPage);
         renderKeysList(allKeys);
         renderPagination();
+        
+        // 更新保存的密钥列表
+        chrome.storage.sync.set({ deeplSavedKeys: allKeys });
       } else {
         // 显示无密钥提示
         savedKeysList.innerHTML = '<div class="no-keys">暂无保存的密钥</div>';
@@ -159,6 +229,13 @@ document.addEventListener('DOMContentLoaded', function() {
   function saveKeyToList(name, key, type) {
     chrome.storage.sync.get('deeplSavedKeys', function(data) {
       let savedKeys = data.deeplSavedKeys || [];
+      
+      // 根据密钥结尾自动判断类型
+      if (key.endsWith(':fx')) {
+        type = 'free';
+      } else if (!key.endsWith(':fx')) {
+        type = 'pro';
+      }
       
       // 检查是否已存在相同的密钥
       const existingKeyIndex = savedKeys.findIndex(k => k.key === key);
@@ -272,15 +349,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // 直接从全局变量获取密钥信息
     if (allKeys && allKeys[index]) {
       const keyItem = allKeys[index];
+      const apiKey = keyItem.key;
+      
+      // 根据密钥结尾自动判断类型
+      let apiKeyType = keyItem.type;
+      if (apiKey.endsWith(':fx')) {
+        apiKeyType = 'free';
+      } else if (!apiKey.endsWith(':fx')) {
+        apiKeyType = 'pro';
+      }
       
       // 填充表单
-      apiKeyInput.value = keyItem.key;
-      apiKeyTypeSelect.value = keyItem.type;
+      apiKeyInput.value = apiKey;
+      apiKeyTypeSelect.value = apiKeyType;
       
       // 保存为当前配置
       chrome.storage.sync.set({
-        deeplApiKey: keyItem.key,
-        deeplApiKeyType: keyItem.type
+        deeplApiKey: apiKey,
+        deeplApiKeyType: apiKeyType
       });
       
       showSuccessDialog('已加载密钥: ' + keyItem.name);
