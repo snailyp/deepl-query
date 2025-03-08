@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>DeepL API 余量查询</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 350px;
+      padding: 15px;
+      background-color: #f8f9fa;
+    }
+    .container {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 20px;
+      position: relative;
+    }
+    h2 {
+      color: #2b5797;
+      margin-top: 0;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+      margin: 0 5px;
+    }
+    .btn-save {
+      background-color: #27ae60;
+    }
+    .btn-query {
+      background-color: #3498db;
+    }
+    .result {
+      margin-top: 20px;
+      display: none;
+    }
+    .progress-bar {
+      background-color: #eee;
+      border-radius: 5px;
+      height: 20px;
+      overflow: hidden;
+      margin-top: 15px;
+    }
+    .progress {
+      height: 100%;
+      text-align: center;
+      line-height: 20px;
+      color: white;
+      font-size: 12px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .info-value {
+      font-weight: bold;
+    }
+    .remaining {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 13px;
+    }
+    /* 错误提示样式 */
+    .error-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .error-dialog {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      width: 85%;
+      max-width: 320px;
+      padding: 0;
+      overflow: hidden;
+    }
+    .error-header {
+      background-color: #f8f9fa;
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .error-header h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #333;
+    }
+    .error-body {
+      padding: 12px;
+    }
+    .error-message {
+      margin: 0 0 12px 0;
+      color: #555;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .error-tips {
+      font-size: 12px;
+      color: #666;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #eee;
+    }
+    .error-tips ul {
+      margin: 5px 0 0 0;
+      padding-left: 18px;
+    }
+    .error-tips li {
+      margin-bottom: 4px;
+    }
+    .error-footer {
+      padding: 10px 15px;
+      text-align: right;
+      border-top: 1px solid #eee;
+    }
+    .btn-close {
+      background-color: #3498db;
+      padding: 6px 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>DeepL API 余量查询</h2>
+    
+    <div class="form-group">
+      <label for="apiKey">API 密钥:</label>
+      <input type="text" id="apiKey" placeholder="输入您的 DeepL API 密钥">
+    </div>
+    
+    <div class="form-group">
+      <label for="apiKeyType">API 类型:</label>
+      <select id="apiKeyType">
+        <option value="pro">Pro</option>
+        <option value="free">Free</option>
+      </select>
+    </div>
+    
+    <div class="btn-group">
+      <button id="saveConfig" class="btn-save">保存配置</button>
+      <button id="queryUsage" class="btn-query">查询余量</button>
+    </div>
+    
+    <div id="result" class="result">
+      <div class="info-row">
+        <span>已使用字符数:</span>
+        <span id="usedChars" class="info-value">0</span>
+      </div>
+      <div class="info-row">
+        <span>总字符数限制:</span>
+        <span id="totalChars" class="info-value">0</span>
+      </div>
+      <div class="info-row">
+        <span>API 类型:</span>
+        <span id="apiType" class="info-value">PRO</span>
+      </div>
+      
+      <div class="progress-bar">
+        <div id="progressBar" class="progress" style="width: 0%;">0%</div>
+      </div>
+      
+      <div id="remaining" class="remaining">
+        余量: <b>100%</b> (0 字符)
+      </div>
+    </div>
+  </div>
+  
+  <!-- 错误提示对话框 -->
+  <div id="errorOverlay" class="error-overlay" style="display: none;">
+    <div class="error-dialog">
+      <div class="error-header">
+        <h3>DeepL API 余量查询提示</h3>
+      </div>
+      <div class="error-body">
+        <p id="errorMessage" class="error-message"></p>
+        <div class="error-tips">
+          <strong>可能的解决方案：</strong>
+          <ul>
+            <li>检查您的网络连接是否正常</li>
+            <li>确认您的 API 密钥是否正确</li>
+            <li>确认您选择的 API 类型（Free/Pro）是否与您的密钥匹配</li>
+            <li>稍后再试</li>
+          </ul>
+        </div>
+      </div>
+      <div class="error-footer">
+        <button id="errorCloseBtn" class="btn-close">确定</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

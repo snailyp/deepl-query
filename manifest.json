@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "DeepL API 余量查询",
+  "version": "1.0",
+  "description": "查询 DeepL API 的使用余量（支持 Pro 和 Free 版本）",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://api.deepl.com/*",
+    "https://api-free.deepl.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon.png",
+      "48": "icons/icon.png",
+      "128": "icons/icon.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  }
+}
